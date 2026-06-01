@@ -1,0 +1,110 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createWineRepository } from '../data/repository';
+import { WineDatabase } from '../data/db';
+import type { DrinkItem, DrinkLog } from '../types';
+
+let database: WineDatabase;
+let repository: ReturnType<typeof createWineRepository>;
+
+beforeEach(() => {
+  database = new WineDatabase(`wine-memory-test-${crypto.randomUUID()}`);
+  repository = createWineRepository(database);
+});
+
+afterEach(async () => {
+  await database.delete();
+  database.close();
+});
+
+describe('wine repository', () => {
+  it('saves and lists drinks and logs', async () => {
+    const drink = createDrink({ id: 'drink-1', name: 'Chianti' });
+    const log = createLog({ id: 'log-1', drinkId: drink.id, rating: 4.4 });
+
+    await repository.saveDrink(drink);
+    await repository.saveLog(log);
+
+    await expect(repository.listDrinks()).resolves.toMatchObject([{ id: 'drink-1', name: 'Chianti' }]);
+    await expect(repository.listLogsForDrink(drink.id)).resolves.toMatchObject([{ id: 'log-1', rating: 4.4 }]);
+  });
+
+  it('deletes a drink with related logs', async () => {
+    const drink = createDrink({ id: 'drink-1' });
+    await repository.saveDrink(drink);
+    await repository.saveLog(createLog({ id: 'log-1', drinkId: drink.id }));
+    await repository.saveLog(createLog({ id: 'log-2', drinkId: drink.id }));
+
+    await repository.deleteDrink(drink.id);
+
+    await expect(repository.listDrinks()).resolves.toHaveLength(0);
+    await expect(repository.listLogs()).resolves.toHaveLength(0);
+  });
+
+  it('exports and imports a backup', async () => {
+    const drink = createDrink({ id: 'drink-1', name: 'Negroni', type: 'cocktail' });
+    const log = createLog({ id: 'log-1', drinkId: drink.id });
+    await repository.saveDrink(drink);
+    await repository.saveLog(log);
+
+    const backup = await repository.exportBackup();
+    await repository.clearAll();
+    await repository.importBackup(backup);
+
+    await expect(repository.listDrinks()).resolves.toMatchObject([{ id: 'drink-1', name: 'Negroni' }]);
+    await expect(repository.listLogs()).resolves.toMatchObject([{ id: 'log-1' }]);
+  });
+
+  it('rejects unsupported backups', async () => {
+    await expect(repository.importBackup({ version: 2, drinks: [], logs: [] } as never)).rejects.toThrow('备份文件格式不支持');
+  });
+});
+
+function createDrink(overrides: Partial<DrinkItem> = {}): DrinkItem {
+  return {
+    id: 'drink',
+    type: 'wine',
+    name: 'House Wine',
+    producer: 'Producer',
+    country: '意大利',
+    region: '托斯卡纳',
+    wineColor: '红',
+    grapes: ['桑娇维塞'],
+    body: '中等',
+    sweetness: '干型',
+    acidity: '中',
+    tannin: '中',
+    decantingNote: '',
+    recipe: '',
+    method: '',
+    glassware: '',
+    ice: '',
+    garnish: '',
+    flavorTags: ['樱桃'],
+    purchaseDate: '2026-01-01',
+    purchaseSource: '酒商',
+    notes: '',
+    wantAgain: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function createLog(overrides: Partial<DrinkLog> = {}): DrinkLog {
+  return {
+    id: 'log',
+    drinkId: 'drink',
+    date: '2026-01-02',
+    scene: '晚餐',
+    place: '家里',
+    pairing: '牛排',
+    rating: 4,
+    aroma: 3,
+    palate: 4,
+    finish: 3,
+    notes: '',
+    createdAt: '2026-01-02T00:00:00.000Z',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    ...overrides,
+  };
+}

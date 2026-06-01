@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Wine Memory icon">
+  <rect width="512" height="512" rx="108" fill="#5f1729"/>
+  <path d="M165 96h182l-18 120c-7 48-40 85-83 94v72h62c12 0 22 10 22 22v12H182v-12c0-12 10-22 22-22h62v-72c-43-9-76-46-83-94L165 96Z" fill="#fff7e6"/>
+  <path d="M196 135h120l-10 68H206l-10-68Z" fill="#b98c48"/>
+  <path d="M209 231c14 31 38 48 47 48s33-17 47-48h-94Z" fill="#2f6f56"/>
+</svg>

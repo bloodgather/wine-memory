@@ -1,0 +1,17 @@
+{
+  "name": "Wine Memory",
+  "short_name": "Wine",
+  "description": "本地优先的酒款和鸡尾酒记录 PWA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff9f1",
+  "theme_color": "#5f1729",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
