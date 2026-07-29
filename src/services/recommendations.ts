@@ -1,4 +1,4 @@
-import { BASE_SPIRITS, EXPLORATION_COUNTRIES, WINE_COLORS } from '../constants';
+import { BASE_SPIRITS, DRINK_TYPE_LABELS, EXPLORATION_COUNTRIES, WINE_COLORS } from '../constants';
 import type { DrinkItem, DrinkLog, DrinkRecommendation, DrinkWithStats, PreferenceProfile, RankedSignal } from '../types';
 
 const HIGH_RATING = 4.2;
@@ -30,7 +30,7 @@ export function buildPreferenceProfile(drinks: DrinkItem[], logs: DrinkLog[]): P
     totalDrinks: drinks.length,
     totalLogs: logs.length,
     averageRating,
-    topTypes: rankDrinkField(sourceLogs, drinksById, (drink) => (drink.type === 'wine' ? '酒款' : '鸡尾酒')),
+    topTypes: rankDrinkField(sourceLogs, drinksById, (drink) => DRINK_TYPE_LABELS[drink.type]),
     topCountries: rankDrinkField(sourceLogs, drinksById, (drink) => drink.country),
     topRegions: rankDrinkField(sourceLogs, drinksById, (drink) => drink.region),
     topWineColors: rankDrinkField(sourceLogs, drinksById, (drink) => drink.wineColor || ''),
@@ -52,11 +52,11 @@ export function buildRecommendations(drinks: DrinkItem[], logs: DrinkLog[]): Dri
         chips: ['干型', '中等酒体', '晚餐'],
       },
       {
-        id: 'starter-cocktail',
+        id: 'starter-broad',
         kind: '小幅探索',
-        title: '再记一杯常喝鸡尾酒做对照',
-        reason: '把酒款和鸡尾酒放在同一套评分里，可以更快看出你偏好清爽、甜感、苦感还是酒感。',
-        chips: ['金酒', '清爽', '配方'],
+        title: '再补一类不同酒做对照',
+        reason: '把葡萄酒、啤酒、白酒、洋酒和鸡尾酒放在同一套评分里，可以更快看出你偏好清爽、甜感、苦感、酒体还是酒感。',
+        chips: ['啤酒', '白酒', '洋酒'],
       },
       {
         id: 'starter-avoid',

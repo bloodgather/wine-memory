@@ -1,4 +1,4 @@
-export type DrinkType = 'wine' | 'cocktail';
+export type DrinkType = 'wine' | 'cocktail' | 'beer' | 'baijiu' | 'spirit';
 export type WineColor = '红' | '白' | '桃红' | '橙酒' | '起泡' | '加强' | '甜酒' | '其他';
 export type BodyLevel = '轻盈' | '中等' | '饱满';
 export type SweetnessLevel = '干型' | '半干' | '半甜' | '甜型';
@@ -23,6 +23,9 @@ export interface DrinkItem {
   tannin?: TanninLevel;
   alcoholPercent?: number;
   decantingNote: string;
+  style: string;
+  originMaterial: string;
+  agingNote: string;
   baseSpirit?: BaseSpirit;
   recipe: string;
   method: string;

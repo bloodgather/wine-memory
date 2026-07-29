@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import Dexie, { type Table } from 'dexie';
 import { createWineRepository } from '../data/repository';
 import { WineDatabase } from '../data/db';
 import type { DrinkItem, DrinkLog } from '../types';
@@ -54,10 +55,63 @@ describe('wine repository', () => {
     await expect(repository.listLogs()).resolves.toMatchObject([{ id: 'log-1' }]);
   });
 
+  it('normalizes old backup data during import', async () => {
+    await repository.importBackup({
+      version: 1,
+      exportedAt: '2026-01-01T00:00:00.000Z',
+      drinks: [createLegacyDrink({ id: 'legacy-backup' }) as DrinkItem],
+      logs: [],
+    });
+
+    await expect(repository.listDrinks()).resolves.toMatchObject([
+      {
+        id: 'legacy-backup',
+        style: '',
+        originMaterial: '',
+        agingNote: '',
+      },
+    ]);
+  });
+
   it('rejects unsupported backups', async () => {
     await expect(repository.importBackup({ version: 2, drinks: [], logs: [] } as never)).rejects.toThrow('备份文件格式不支持');
   });
+
+  it('fills new general drink fields when upgrading old local data', async () => {
+    const name = `wine-memory-upgrade-${crypto.randomUUID()}`;
+    const oldDatabase = new OldWineDatabase(name);
+    await oldDatabase.drinks.put(createLegacyDrink({ id: 'legacy-wine' }));
+    oldDatabase.close();
+
+    const upgradedDatabase = new WineDatabase(name);
+    const upgradedRepository = createWineRepository(upgradedDatabase);
+    const [drink] = await upgradedRepository.listDrinks();
+
+    expect(drink).toMatchObject({
+      id: 'legacy-wine',
+      style: '',
+      originMaterial: '',
+      agingNote: '',
+    });
+
+    await upgradedDatabase.delete();
+    upgradedDatabase.close();
+  });
 });
+
+class OldWineDatabase extends Dexie {
+  drinks!: Table<Omit<DrinkItem, 'style' | 'originMaterial' | 'agingNote'>, string>;
+  logs!: Table<DrinkLog, string>;
+
+  constructor(name: string) {
+    super(name);
+    this.version(1).stores({
+      drinks:
+        'id, type, name, producer, country, region, wineColor, baseSpirit, purchaseDate, purchaseSource, wantAgain, updatedAt',
+      logs: 'id, drinkId, date, scene, place, rating, updatedAt',
+    });
+  }
+}
 
 function createDrink(overrides: Partial<DrinkItem> = {}): DrinkItem {
   return {
@@ -74,6 +128,9 @@ function createDrink(overrides: Partial<DrinkItem> = {}): DrinkItem {
     acidity: '中',
     tannin: '中',
     decantingNote: '',
+    style: '',
+    originMaterial: '',
+    agingNote: '',
     recipe: '',
     method: '',
     glassware: '',
@@ -88,6 +145,13 @@ function createDrink(overrides: Partial<DrinkItem> = {}): DrinkItem {
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
+}
+
+function createLegacyDrink(
+  overrides: Partial<Omit<DrinkItem, 'style' | 'originMaterial' | 'agingNote'>> = {},
+): Omit<DrinkItem, 'style' | 'originMaterial' | 'agingNote'> {
+  const { style: _style, originMaterial: _originMaterial, agingNote: _agingNote, ...drink } = createDrink(overrides as Partial<DrinkItem>);
+  return drink;
 }
 
 function createLog(overrides: Partial<DrinkLog> = {}): DrinkLog {

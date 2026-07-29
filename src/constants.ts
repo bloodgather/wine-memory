@@ -1,5 +1,14 @@
-import type { AcidityLevel, BaseSpirit, BodyLevel, SweetnessLevel, TanninLevel, WineColor } from './types';
+import type { AcidityLevel, BaseSpirit, BodyLevel, DrinkType, SweetnessLevel, TanninLevel, WineColor } from './types';
 
+export const DRINK_TYPE_LABELS: Record<DrinkType, string> = {
+  wine: '酒款',
+  cocktail: '鸡尾酒',
+  beer: '啤酒',
+  baijiu: '白酒',
+  spirit: '洋酒',
+};
+
+export const DRINK_TYPES = Object.keys(DRINK_TYPE_LABELS) as DrinkType[];
 export const WINE_COLORS: WineColor[] = ['红', '白', '桃红', '橙酒', '起泡', '加强', '甜酒', '其他'];
 export const BODY_LEVELS: BodyLevel[] = ['轻盈', '中等', '饱满'];
 export const SWEETNESS_LEVELS: SweetnessLevel[] = ['干型', '半干', '半甜', '甜型'];
