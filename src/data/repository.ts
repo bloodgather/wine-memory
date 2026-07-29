@@ -56,7 +56,7 @@ export function createWineRepository(database: WineDatabase = db): WineRepositor
       await database.transaction('rw', database.drinks, database.logs, async () => {
         await database.drinks.clear();
         await database.logs.clear();
-        await database.drinks.bulkPut(backup.drinks);
+        await database.drinks.bulkPut(backup.drinks.map(normalizeDrink));
         await database.logs.bulkPut(backup.logs);
       });
     },
@@ -70,3 +70,21 @@ export function createWineRepository(database: WineDatabase = db): WineRepositor
 }
 
 export const wineRepository = createWineRepository();
+
+function normalizeDrink(drink: DrinkItem): DrinkItem {
+  return {
+    ...drink,
+    grapes: drink.grapes ?? [],
+    decantingNote: drink.decantingNote ?? '',
+    style: drink.style ?? '',
+    originMaterial: drink.originMaterial ?? '',
+    agingNote: drink.agingNote ?? '',
+    recipe: drink.recipe ?? '',
+    method: drink.method ?? '',
+    glassware: drink.glassware ?? '',
+    ice: drink.ice ?? '',
+    garnish: drink.garnish ?? '',
+    flavorTags: drink.flavorTags ?? [],
+    notes: drink.notes ?? '',
+  };
+}

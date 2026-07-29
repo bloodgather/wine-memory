@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   BarChart3,
+  Beer,
   Check,
   ChevronRight,
   Download,
@@ -25,6 +26,8 @@ import {
   BASE_SPIRITS,
   BODY_LEVELS,
   COMMON_FLAVOR_TAGS,
+  DRINK_TYPE_LABELS,
+  DRINK_TYPES,
   PURCHASE_SOURCES,
   SCENE_SUGGESTIONS,
   SWEETNESS_LEVELS,
@@ -98,6 +101,9 @@ export default function App() {
           drink.region,
           drink.recipe,
           drink.method,
+          drink.style,
+          drink.originMaterial,
+          drink.agingNote,
           drink.notes,
           drink.baseSpirit,
           drink.wineColor,
@@ -136,6 +142,9 @@ export default function App() {
       tannin: input.type === 'wine' ? input.tannin : undefined,
       alcoholPercent: input.alcoholPercent ? Number(input.alcoholPercent) : undefined,
       decantingNote: input.type === 'wine' ? input.decantingNote.trim() : '',
+      style: input.type !== 'wine' && input.type !== 'cocktail' ? input.style.trim() : '',
+      originMaterial: input.type !== 'wine' && input.type !== 'cocktail' ? input.originMaterial.trim() : '',
+      agingNote: input.type !== 'wine' && input.type !== 'cocktail' ? input.agingNote.trim() : '',
       baseSpirit: input.type === 'cocktail' ? input.baseSpirit : undefined,
       recipe: input.type === 'cocktail' ? input.recipe.trim() : '',
       method: input.type === 'cocktail' ? input.method.trim() : '',
@@ -492,7 +501,7 @@ function DrinksView({
       </div>
 
       <div className="filter-row">
-        <SelectPill value={typeFilter} onChange={(value) => onTypeFilterChange(value as TypeFilter)} options={['全部', 'wine', 'cocktail']} labels={{ wine: '酒款', cocktail: '鸡尾酒' }} />
+        <SelectPill value={typeFilter} onChange={(value) => onTypeFilterChange(value as TypeFilter)} options={['全部', ...DRINK_TYPES]} labels={DRINK_TYPE_LABELS} />
         <label className="rating-filter">
           <Star size={15} />
           <input type="number" min="0" max="5" step="0.5" value={minRating} onChange={(event) => onMinRatingChange(Number(event.target.value))} />
@@ -536,9 +545,9 @@ function DrinkDetail({
         {drink.photoDataUrl && <DrinkPhoto drink={drink} className="detail-photo" />}
         <div className="detail-heading">
           <div>
-            <p className="eyebrow">{drink.type === 'wine' ? '酒款' : '鸡尾酒'}</p>
+            <p className="eyebrow">{DRINK_TYPE_LABELS[drink.type]}</p>
             <h2>{drink.name}</h2>
-            <p className="item-meta">{drink.type === 'wine' ? wineMeta(drink) : cocktailMeta(drink)}</p>
+            <p className="item-meta">{drinkMeta(drink)}</p>
           </div>
           <div className="score-badge">{formatRating(drink.averageRating)}</div>
         </div>
@@ -554,7 +563,7 @@ function DrinkDetail({
 
         <dl className="info-grid">
           <div>
-            <dt>{drink.type === 'wine' ? '酒庄 / 品牌' : '来源'}</dt>
+            <dt>{drink.type === 'cocktail' ? '来源' : '品牌 / 生产方'}</dt>
             <dd>{drink.producer || '未记录'}</dd>
           </div>
           <div>
@@ -579,7 +588,9 @@ function DrinkDetail({
           </div>
         </dl>
 
-        {drink.type === 'wine' ? <WineDetailFields drink={drink} /> : <CocktailDetailFields drink={drink} />}
+        {drink.type === 'wine' && <WineDetailFields drink={drink} />}
+        {drink.type === 'cocktail' && <CocktailDetailFields drink={drink} />}
+        {drink.type !== 'wine' && drink.type !== 'cocktail' && <GeneralDrinkDetailFields drink={drink} />}
         {drink.notes && <p className="note-block">{drink.notes}</p>}
 
         <div className="action-row">
@@ -678,6 +689,29 @@ function CocktailDetailFields({ drink }: { drink: DrinkItem }) {
         </div>
       </dl>
     </>
+  );
+}
+
+function GeneralDrinkDetailFields({ drink }: { drink: DrinkItem }) {
+  return (
+    <dl className="info-grid">
+      <div>
+        <dt>风格 / 类型</dt>
+        <dd>{drink.style || '未记录'}</dd>
+      </div>
+      <div>
+        <dt>原料</dt>
+        <dd>{drink.originMaterial || '未记录'}</dd>
+      </div>
+      <div>
+        <dt>产地</dt>
+        <dd>{[drink.country, drink.region].filter(Boolean).join(' · ') || '未记录'}</dd>
+      </div>
+      <div>
+        <dt>陈年 / 工艺</dt>
+        <dd>{drink.agingNote || '未记录'}</dd>
+      </div>
+    </dl>
   );
 }
 
@@ -817,6 +851,9 @@ interface DrinkFormValue {
   tannin: TanninLevel;
   alcoholPercent: string;
   decantingNote: string;
+  style: string;
+  originMaterial: string;
+  agingNote: string;
   baseSpirit: BaseSpirit;
   recipe: string;
   method: string;
@@ -863,6 +900,9 @@ function DrinkForm({
     tannin: initialDrink?.tannin || '中',
     alcoholPercent: initialDrink?.alcoholPercent?.toString() || '',
     decantingNote: initialDrink?.decantingNote || '',
+    style: initialDrink?.style || '',
+    originMaterial: initialDrink?.originMaterial || '',
+    agingNote: initialDrink?.agingNote || '',
     baseSpirit: initialDrink?.baseSpirit || '金酒',
     recipe: initialDrink?.recipe || '',
     method: initialDrink?.method || '',
@@ -921,12 +961,11 @@ function DrinkForm({
     >
       <h2>{initialDrink ? '编辑档案' : '新增档案'}</h2>
       <div className="segmented compact">
-        <button className={value.type === 'wine' ? 'active' : ''} type="button" onClick={() => patch('type', 'wine')}>
-          酒款
-        </button>
-        <button className={value.type === 'cocktail' ? 'active' : ''} type="button" onClick={() => patch('type', 'cocktail')}>
-          鸡尾酒
-        </button>
+        {DRINK_TYPES.map((type) => (
+          <button className={value.type === type ? 'active' : ''} type="button" key={type} onClick={() => patch('type', type)}>
+            {DRINK_TYPE_LABELS[type]}
+          </button>
+        ))}
       </div>
 
       <div className="photo-field">
@@ -969,11 +1008,11 @@ function DrinkForm({
         </div>
       </div>
 
-      <Field label={value.type === 'wine' ? '酒款名称' : '鸡尾酒名称'} required>
-        <input required value={value.name} onChange={(event) => patch('name', event.target.value)} placeholder={value.type === 'wine' ? '例如 勃艮第黑皮诺' : '例如 Negroni'} />
+      <Field label={`${DRINK_TYPE_LABELS[value.type]}名称`} required>
+        <input required value={value.name} onChange={(event) => patch('name', event.target.value)} placeholder={namePlaceholder(value.type)} />
       </Field>
-      <Field label={value.type === 'wine' ? '酒庄 / 品牌' : '来源 / 酒吧'}>
-        <input value={value.producer} onChange={(event) => patch('producer', event.target.value)} placeholder={value.type === 'wine' ? '例如 Domaine / 酒商' : '例如 自调、某家酒吧'} />
+      <Field label={value.type === 'cocktail' ? '来源 / 酒吧' : '品牌 / 生产方'}>
+        <input value={value.producer} onChange={(event) => patch('producer', event.target.value)} placeholder={producerPlaceholder(value.type)} />
       </Field>
 
       {value.type === 'wine' ? (
@@ -995,7 +1034,7 @@ function DrinkForm({
           </div>
           <Field label="醒酒 / 适饮备注"><textarea value={value.decantingNote} onChange={(event) => patch('decantingNote', event.target.value)} placeholder="例如 开瓶 30 分钟后更舒展，适合配牛排" /></Field>
         </>
-      ) : (
+      ) : value.type === 'cocktail' ? (
         <>
           <div className="form-grid">
             <Field label="基酒"><select value={value.baseSpirit} onChange={(event) => patch('baseSpirit', event.target.value as BaseSpirit)}>{BASE_SPIRITS.map((item) => <option key={item}>{item}</option>)}</select></Field>
@@ -1011,6 +1050,18 @@ function DrinkForm({
             <input type="checkbox" checked={value.isHomemade} onChange={(event) => patch('isHomemade', event.target.checked)} />
             <span>这是我自己调的</span>
           </label>
+        </>
+      ) : (
+        <>
+          <div className="form-grid">
+            <Field label="国家 / 地区"><input value={value.country} onChange={(event) => patch('country', event.target.value)} placeholder="中国、德国、日本、苏格兰" /></Field>
+            <Field label="产区 / 地方"><input value={value.region} onChange={(event) => patch('region', event.target.value)} placeholder="青岛、茅台镇、艾雷岛、波本产区" /></Field>
+          </div>
+          <div className="form-grid">
+            <Field label="风格 / 类型"><input value={value.style} onChange={(event) => patch('style', event.target.value)} placeholder={stylePlaceholder(value.type)} /></Field>
+            <Field label="原料"><input value={value.originMaterial} onChange={(event) => patch('originMaterial', event.target.value)} placeholder={materialPlaceholder(value.type)} /></Field>
+          </div>
+          <Field label="陈年 / 工艺"><textarea value={value.agingNote} onChange={(event) => patch('agingNote', event.target.value)} placeholder={agingPlaceholder(value.type)} /></Field>
         </>
       )}
 
@@ -1036,7 +1087,7 @@ function DrinkForm({
       <Field label="个人备注"><textarea value={value.notes} onChange={(event) => patch('notes', event.target.value)} placeholder="为什么想买、喝前期待、下次怎么调整" /></Field>
       <label className="toggle-line">
         <input type="checkbox" checked={value.wantAgain} onChange={(event) => patch('wantAgain', event.target.checked)} />
-        <span>{value.type === 'wine' ? '想复购' : '想再调 / 再点'}</span>
+        <span>{value.type === 'cocktail' ? '想再调 / 再点' : '想复购'}</span>
       </label>
       <div className="action-row">
         <button className="primary-action" type="submit" disabled={isPhotoProcessing}>
@@ -1124,7 +1175,7 @@ function DrinkCard({ drink, onClick }: { drink: DrinkWithStats; onClick: () => v
       <div className="drink-card-main">
         <DrinkPhoto drink={drink} className="drink-card-photo" />
         <div className="drink-card-copy">
-          <p className="eyebrow">{drink.type === 'wine' ? wineMeta(drink) : cocktailMeta(drink)}</p>
+          <p className="eyebrow">{drinkMeta(drink)}</p>
           <h3>{drink.name}</h3>
           <p className="item-meta">{drink.logs.length} 次饮用 · {drink.wantAgain ? '想再喝' : '未标记'}</p>
         </div>
@@ -1164,7 +1215,7 @@ function DrinkPhoto({ drink, className }: { drink: Pick<DrinkItem, 'name' | 'pho
     <img className={className} src={drink.photoDataUrl} alt={`${drink.name} 的照片`} loading="lazy" />
   ) : (
     <div className={`${className} photo-fallback`} aria-label="暂无照片">
-      {drink.type === 'wine' ? <Wine size={18} /> : <GlassWater size={18} />}
+      {drink.type === 'wine' ? <Wine size={18} /> : drink.type === 'beer' ? <Beer size={18} /> : <GlassWater size={18} />}
     </div>
   );
 }
@@ -1294,7 +1345,7 @@ function SelectPill({
 }: {
   value: string;
   options: string[];
-  labels?: Record<string, string>;
+  labels?: Partial<Record<string, string>>;
   onChange: (value: string) => void;
 }) {
   return (
@@ -1339,4 +1390,69 @@ function wineMeta(drink: DrinkItem) {
 
 function cocktailMeta(drink: DrinkItem) {
   return [drink.baseSpirit, drink.isHomemade ? '自调' : drink.producer].filter(Boolean).join(' · ') || '未记录基酒';
+}
+
+function generalDrinkMeta(drink: DrinkItem) {
+  return [DRINK_TYPE_LABELS[drink.type], drink.style, drink.country, drink.region].filter(Boolean).join(' · ') || DRINK_TYPE_LABELS[drink.type];
+}
+
+function drinkMeta(drink: DrinkItem) {
+  if (drink.type === 'wine') return wineMeta(drink);
+  if (drink.type === 'cocktail') return cocktailMeta(drink);
+  return generalDrinkMeta(drink);
+}
+
+function namePlaceholder(type: DrinkType) {
+  const placeholders: Record<DrinkType, string> = {
+    wine: '例如 勃艮第黑皮诺',
+    cocktail: '例如 Negroni',
+    beer: '例如 帝国世涛、IPA、修道院三料',
+    baijiu: '例如 飞天茅台、普五、国窖1573',
+    spirit: '例如 麦卡伦 12 年、山崎、轩尼诗 VSOP',
+  };
+  return placeholders[type];
+}
+
+function producerPlaceholder(type: DrinkType) {
+  const placeholders: Record<DrinkType, string> = {
+    wine: '例如 Domaine / 酒商',
+    cocktail: '例如 自调、某家酒吧',
+    beer: '例如 酿酒厂、品牌、酒吧',
+    baijiu: '例如 酒厂、品牌、渠道',
+    spirit: '例如 酒厂、装瓶商、品牌',
+  };
+  return placeholders[type];
+}
+
+function stylePlaceholder(type: DrinkType) {
+  const placeholders: Record<DrinkType, string> = {
+    wine: '',
+    cocktail: '',
+    beer: '例如 IPA、世涛、皮尔森、酸啤',
+    baijiu: '例如 酱香、浓香、清香、兼香',
+    spirit: '例如 单一麦芽、波本、干邑、朗姆',
+  };
+  return placeholders[type];
+}
+
+function materialPlaceholder(type: DrinkType) {
+  const placeholders: Record<DrinkType, string> = {
+    wine: '',
+    cocktail: '',
+    beer: '例如 麦芽、啤酒花、酵母、特殊辅料',
+    baijiu: '例如 高粱、小麦、玉米、大曲',
+    spirit: '例如 大麦、玉米、甘蔗、葡萄',
+  };
+  return placeholders[type];
+}
+
+function agingPlaceholder(type: DrinkType) {
+  const placeholders: Record<DrinkType, string> = {
+    wine: '',
+    cocktail: '',
+    beer: '例如 过桶、干投、发酵特点、适饮温度',
+    baijiu: '例如 年份、轮次、勾调、开瓶变化',
+    spirit: '例如 桶型、陈年年份、泥煤、过桶信息',
+  };
+  return placeholders[type];
 }

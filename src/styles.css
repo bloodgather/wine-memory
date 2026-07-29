@@ -505,7 +505,8 @@ button {
 }
 
 .segmented.compact {
-  max-width: 320px;
+  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+  max-width: 560px;
 }
 
 .segmented button {
